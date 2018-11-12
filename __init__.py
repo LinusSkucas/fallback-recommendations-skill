@@ -1,6 +1,8 @@
 from mycroft.skills.core import FallbackSkill
 from mycroft.util import normalize
-from msm import 
+from mycroft.messagebus.message import Message
+import os
+import time
 import string
 import requests
 import json
@@ -32,16 +34,28 @@ class SkillRecommendationsFallback(FallbackSkill):
                 if normalize(example, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation}) == normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation}):
                     return str(dic.get("skill"))
     
+    def send_ws_utterance(self, utter):
+        self.bus.emit(Message("recognizer_utterance", {"utterances": "[{}]".format(utter), "lang":"en-us"})) #TODO: Localize!!
+        
+
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
         utter = message.data.get("utterance")
         suggested_skill = self.skill_search(utter)
-        self.log.error(str(suggested_skill))
+        self.log.info(str(suggested_skill))
         if suggested_skill == None:
             return False
         else:
             #We can download the skill
+            self.speak_dialog("skill.downloading")
+            os.system("msm install {}".format(suggested_skill)) #Not sure how this plays with the marketplace thing
+            # TODO:  Now have mycroft respond to the utterance
+            time.sleep(15) #Wait for the training to be done TODO: THere should be some messagebus thing
+            #Downloaded/installed, now replay the utterance
+            #self.send_ws_utterance(utter)
 
+            #In the meantime, just say the user can say that again.
+            self.speak_dialog("done.downloading")
             return True
         
         def shutdown(self):
