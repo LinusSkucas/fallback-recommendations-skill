@@ -1,5 +1,6 @@
 from mycroft.skills.core import FallbackSkill
 from mycroft.util import normalize
+from mycroft.util.parse import match_one
 from mycroft.messagebus.message import Message
 import os
 import time
@@ -23,25 +24,32 @@ class SkillRecommendationsFallback(FallbackSkill):
         #Download
         data = requests.get(url, allow_redirects=True).json()
         
-        self.examples_list = []
+        self.examples_dict = {}
         
-        for key, value in data.items():
-            self.examples_list.append({"skill":key, "examples":value.get("examples")})
-    
+        for skill, data in data.items():
+            examples = data.get("examples")
+            for idx, example in enumerate(examples):
+                self.examples_dict[str(self._get_ready(example))] = str(skill)
+
+    def _get_ready(self, utter):
+        """Lowercase and normalize any strings get rid of puncuations"""
+        return normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation})
+
     def skill_search(self, utter):
-        for idx, dic in enumerate(self.examples_list):
-            for idx, example in enumerate(dic.get("examples")):
-                if normalize(example, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation}) == normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation}):
-                    return str(dic.get("skill"))
+        """Redo with fuzzy mathcing"""
+        skill, confidence = match_one(utter, self.examples_dict)
+        if confidence >0.5:
+            return skill
+        else:
+            None
     
     def send_ws_utterance(self, utter):
         self.bus.emit(Message("recognizer_utterance", {"utterances": "[{}]".format(utter), "lang":"en-us"})) #TODO: Localize!!
         
-
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
         utter = message.data.get("utterance")
-        suggested_skill = self.skill_search(utter)
+        suggested_skill = self.skill_search(self._get_ready(utter))
         self.log.info(str(suggested_skill))
         if suggested_skill == None:
             return False
@@ -51,7 +59,7 @@ class SkillRecommendationsFallback(FallbackSkill):
             os.system("msm install {}".format(suggested_skill)) #Not sure how this plays with the marketplace thing
             # TODO:  Now have mycroft respond to the utterance
             time.sleep(15) #Wait for the training to be done TODO: THere should be some messagebus thing
-            #Downloaded/installed, now replay the utterance
+            #Downloaded/installed, now replay the utterance NEED To fix!
             #self.send_ws_utterance(utter)
 
             #In the meantime, just say the user can say that again.
