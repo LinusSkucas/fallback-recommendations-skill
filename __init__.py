@@ -16,6 +16,7 @@ from mycroft.skills.core import FallbackSkill
 from mycroft.util import normalize
 from mycroft.util.parse import match_one
 from mycroft.messagebus.message import Message
+import datetime
 import os
 import time
 import string
@@ -35,19 +36,33 @@ class SkillRecommendationsFallback(FallbackSkill):
     def initialize(self):
         """Register and download the file"""
         self.register_fallback(self.handle_fallback, 17) # Q:why 17? A:Why not?
+        ## Setup a event scheduler for auto update
+        # Delete any other schedulers that this skill has set up
+        try:
+            self.cancel_scheduled_event("SkillRecommendationsFallback.auto_refresh.lists")
+        except:
+            #No event exists: OKAY!
+            pass
+        # Now create a repeating event, starting now so that it updates now. Updates every 4 hours(14400 seconds=4 hours)
+        self.schedule_repeating_event(handler=self._update_lists, when=datetime.datetime.now(), frequency=14400, data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
+
+    def _get_ready(self, utter):
+        """Lowercase and normalize any strings get rid of puncuations :)"""
+        return normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation})
+
+    def _update_lists(self):
+        """Update the example lists"""
+        self.log.info("Updating example lists")
         #Download
         data = requests.get(url, allow_redirects=True).json()
-        
+        #format
         self.examples_dict = {}
         
         for skill, data in data.items():
             examples = data.get("examples")
             for idx, example in enumerate(examples):
                 self.examples_dict[str(self._get_ready(example))] = str(skill)
-
-    def _get_ready(self, utter):
-        """Lowercase and normalize any strings get rid of puncuations"""
-        return normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation})
+        self.log.info("Done updating example lists")
 
     def skill_search(self, utter):
         """Redo with fuzzy mathcing"""
