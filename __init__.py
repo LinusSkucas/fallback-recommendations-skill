@@ -16,7 +16,9 @@ from mycroft.skills.core import FallbackSkill
 from mycroft.util import normalize
 from mycroft.util.parse import match_one
 from mycroft.messagebus.message import Message
+from mycroft.skills.skill_manager import SkillManager
 import datetime
+import time
 import os
 import time
 import string
@@ -32,6 +34,7 @@ class SkillRecommendationsFallback(FallbackSkill):
 
     def __init__(self):
         super(SkillRecommendationsFallback, self).__init__(name='Skill Recommendations Fallback')
+        self.msm = SkillManager.create_msm()
         
     def initialize(self):
         """Register and download the file"""
@@ -74,6 +77,20 @@ class SkillRecommendationsFallback(FallbackSkill):
     
     def send_ws_utterance(self, utter):
         self.bus.emit(Message("recognizer_utterance", {"utterances": "[{}]".format(utter), "lang":"en-us"})) #TODO: Localize!!
+
+    def install_skill(self, skill):
+            skills_data = SkillManager.load_skills_data()
+            skill_data = skills_data.setdefault(skill.name, {})
+            skill.install()
+
+            #Marketplace Junk - just to update it
+            skill_data['beta'] = False
+            skill_data['name'] = skill.name
+            skill_data['origin'] = 'voice'
+            skill_data['installation'] = 'installed'
+            skill_data['installed'] = time.time()
+            skill_data['failure-message'] = ''
+            SkillManager.write_skills_data(skills_data)
         
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
@@ -85,7 +102,9 @@ class SkillRecommendationsFallback(FallbackSkill):
         else:
             #We can download the skill
             self.speak_dialog("skill.downloading")
-            os.system("msm install {}".format(suggested_skill)) #Not sure how this plays with the marketplace thing
+            #install the skill
+            skill = self.msm.find_skill(suggested_skill, False)
+            self.install_skill(skill)
             # TODO:  Now have mycroft respond to the utterance
             time.sleep(15) #Wait for the training to be done TODO: THere should be some messagebus thing
             #Downloaded/installed, now replay the utterance NEED To fix!
