@@ -39,6 +39,8 @@ class SkillRecommendationsFallback(FallbackSkill):
     def initialize(self):
         """Register and download the file"""
         self.register_fallback(self.handle_fallback, 17) # Q:why 17? A:Why not?
+        #Add installation event
+        self.add_event('mycroft.skills.loaded', self.handle_skill_loaded)
         ## Setup a event scheduler for auto update
         # Delete any other schedulers that this skill has set up
         try:
@@ -47,13 +49,23 @@ class SkillRecommendationsFallback(FallbackSkill):
             #No event exists: OKAY!
             pass
         # Now create a repeating event, starting now so that it updates now. Updates every 4 hours(14400 seconds=4 hours)
-        self.schedule_repeating_event(handler=self._update_lists, when=datetime.datetime.now(), frequency=14400, data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
+        self.schedule_repeating_event(handler=self.update_lists, when=datetime.datetime.now(), frequency=14400, data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
 
     def _get_ready(self, utter):
         """Lowercase and normalize any strings get rid of puncuations :)"""
         return normalize(utter, remove_articles=True).lower().translate({ord(c): None for c in string.punctuation})
 
-    def _update_lists(self):
+    def handle_skill_loaded(self, message):
+        skill_id = message.data.get("id")
+        skill_id = skill_id[0:skill_id.find(".")]
+        if skill_id == str(self.settings.get("install_skill")): #TODO: strip off the endings
+            time.sleep(5)
+            #notify installation is done!
+            self.settings["install_skill"] == ""
+            self.send_utterance(str(self.settings.get("utter")))
+            self.settings["utter"] == ""
+
+    def update_lists(self):
         """Update the example lists"""
         self.log.info("Updating example lists")
         #Download
@@ -75,8 +87,8 @@ class SkillRecommendationsFallback(FallbackSkill):
         else:
             None
     
-    def send_ws_utterance(self, utter):
-        self.bus.emit(Message("recognizer_utterance", {"utterances": "[{}]".format(utter), "lang":"en-us"})) #TODO: Localize!!
+    def send_utterance(self, utter):
+        self.bus.emit(Message("recognizer_loop:utterance",  {'utterances': ["{}".format(utter)],  'lang': 'en-us'})) #TODO: localize
 
     def install_skill(self, skill):
             skills_data = SkillManager.load_skills_data()
@@ -102,16 +114,13 @@ class SkillRecommendationsFallback(FallbackSkill):
         else:
             #We can download the skill
             self.speak_dialog("skill.downloading")
+
+            self.settings["install_skill"] = suggested_skill
+            self.settings["utter"] = utter
+            self.settings.store()
             #install the skill
             skill = self.msm.find_skill(suggested_skill, False)
             self.install_skill(skill)
-            # TODO:  Now have mycroft respond to the utterance
-            time.sleep(15) #Wait for the training to be done TODO: THere should be some messagebus thing
-            #Downloaded/installed, now replay the utterance NEED To fix!
-            #self.send_ws_utterance(utter)
-
-            #In the meantime, just say the user can say that again.
-            self.speak_dialog("done.downloading")
             return True
         
         def shutdown(self):
