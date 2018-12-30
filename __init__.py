@@ -113,7 +113,6 @@ class SkillRecommendationsFallback(FallbackSkill):
             return False
         else:
             # We can download the skill
-            self.speak_dialog("skill.downloading")
 
             self.settings["install_skill"] = suggested_skill
             self.settings["utter"] = utter
@@ -123,6 +122,7 @@ class SkillRecommendationsFallback(FallbackSkill):
             # if it is already installed, return false: we can't help
             if skill.is_local:
                 return False
+            self.speak_dialog("skill.downloading")
             self.install_skill(skill)
             return True
         
