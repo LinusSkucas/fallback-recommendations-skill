@@ -1,4 +1,4 @@
-# Copyright 2018 Linus S
+# Copyright 2019 Linus S
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ class SkillRecommendationsFallback(FallbackSkill):
         if confidence >0.5:
             return skill
         else:
-            None
+            return None
     
     def send_utterance(self, utter):
         self.bus.emit(Message("recognizer_loop:utterance",  {'utterances': ["{}".format(utter)],  'lang': 'en-us'})) #TODO: localize
@@ -95,7 +95,7 @@ class SkillRecommendationsFallback(FallbackSkill):
             skill_data = skills_data.setdefault(skill.name, {})
             skill.install()
 
-            #Marketplace Junk - just to update it
+            # Marketplace Junk - just to update it
             skill_data['beta'] = False
             skill_data['name'] = skill.name
             skill_data['origin'] = 'voice'
@@ -109,24 +109,28 @@ class SkillRecommendationsFallback(FallbackSkill):
         utter = message.data.get("utterance")
         suggested_skill = self.skill_search(self._get_ready(utter))
         self.log.info(str(suggested_skill))
-        if suggested_skill == None:
+        if suggested_skill is None:
             return False
         else:
-            #We can download the skill
-            self.speak_dialog("skill.downloading")
+            # We can download the skill
 
             self.settings["install_skill"] = suggested_skill
             self.settings["utter"] = utter
             self.settings.store()
-            #install the skill
+            # install the skill
             skill = self.msm.find_skill(suggested_skill, False)
+            # if it is already installed, return false: we can't help
+            if skill.is_local:
+                return False
+            self.speak_dialog("skill.downloading")
             self.install_skill(skill)
             return True
         
-        def shutdown(self):
-            """Remove skill from list of skills"""
-            self.remove_fallback(self.handle_fallback)
-            super(SkillRecommendationsFallback, self).shutdown()
+    def shutdown(self):
+        """Remove skill from list of skills"""
+        self.remove_fallback(self.handle_fallback)
+        super(SkillRecommendationsFallback, self).shutdown()
 
 def create_skill():
     return SkillRecommendationsFallback()
+
