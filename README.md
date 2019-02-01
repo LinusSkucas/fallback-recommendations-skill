@@ -1,11 +1,11 @@
 # <img src='https://rawgit.com/FortAwesome/Font-Awesome/master/svgs/solid/brain.svg' card_color='#FD9E66' width='50' height='50' style='vertical-align:bottom'/> Recommendations Fallback Skill
-When Mycroft doesn't know something, he will look up and download a skill that can handle that utterance.
+When Mycroft doesn't know something, look up and download a skill that can handle that request.
 
 ## About 
-When Mycroft doesn't know something, he will look it up skills that could help you complete your intent. If he finds a skill, he will download it to your device.
+When Mycroft doesn't know something, this fallback skill will look up skills from the Marketplace that could help you complete your request. If it finds an appropriate skill, this will be downloaded to your device.
 
 ## Examples 
-* "(Utterances of any skill)"
+* "(Utterances of any skill not yet installed)"
 * "..."
 
 ## Credits 
