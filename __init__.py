@@ -112,7 +112,8 @@ class SkillRecommendationsFallback(FallbackSkill):
         utter = message.data.get("utterance")
         search = self.skill_search(self._get_ready(utter))
         suggested_skill = search[0]
-        skill_title = search[1]
+        skill_title = search[1].lower().replace("skill", "")
+        # Get rid of any "Skill" in the title
         self.log.info(str(suggested_skill))
         if suggested_skill is None:
             return False
