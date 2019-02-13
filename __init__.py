@@ -28,6 +28,7 @@ import json
 # The url to get the data
 url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/18.08/skill-metadata.json"
 
+
 class SkillRecommendationsFallback(FallbackSkill):
     """A fallback skill to search the mycroft data repo
     if a skill is found, it will be prompted to install it."""
@@ -35,21 +36,22 @@ class SkillRecommendationsFallback(FallbackSkill):
     def __init__(self):
         super(SkillRecommendationsFallback, self).__init__(name='Skill Recommendations Fallback')
         self.msm = SkillManager.create_msm()
-        
+
     def initialize(self):
         """Register and download the file"""
-        self.register_fallback(self.handle_fallback, 17) # Q:why 17? A:Why not?
-        #Add installation event
+        self.register_fallback(self.handle_fallback, 17)  # Q:why 17? A:Why not?
+        # Add installation event
         self.add_event('mycroft.skills.loaded', self.handle_skill_loaded)
         ## Setup a event scheduler for auto update
         # Delete any other schedulers that this skill has set up
         try:
             self.cancel_scheduled_event("SkillRecommendationsFallback.auto_refresh.lists")
         except:
-            #No event exists: OKAY!
+            # No event exists: OKAY!
             pass
         # Now create a repeating event, starting now so that it updates now. Updates every 4 hours(14400 seconds=4 hours
-        self.schedule_repeating_event(handler=self.update_lists, when=datetime.datetime.now(), frequency=14400, data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
+        self.schedule_repeating_event(handler=self.update_lists, when=datetime.datetime.now(), frequency=14400,
+                                      data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
 
     def _get_ready(self, utter):
         """Lowercase and normalize any strings get rid of puncuations :)"""
@@ -58,9 +60,9 @@ class SkillRecommendationsFallback(FallbackSkill):
     def handle_skill_loaded(self, message):
         skill_id = message.data.get("id")
         skill_id = skill_id[0:skill_id.find(".")]
-        if skill_id == str(self.settings.get("install_skill")): #TODO: strip off the endings
+        if skill_id == str(self.settings.get("install_skill")):  # TODO: strip off the endings
             time.sleep(5)
-            #notify installation is done!
+            # notify installation is done!
             self.settings["install_skill"] == ""
             self.send_utterance(str(self.settings.get("utter")))
             self.settings["utter"] == ""
@@ -68,11 +70,11 @@ class SkillRecommendationsFallback(FallbackSkill):
     def update_lists(self):
         """Update the example lists"""
         self.log.info("Updating example lists")
-        #Download
+        # Download
         data = requests.get(url, allow_redirects=True).json()
-        #format
+        # format
         self.examples_dict = {}
-        
+
         for skill, data in data.items():
             examples = data.get("examples")
             for idx, example in enumerate(examples):
@@ -82,28 +84,29 @@ class SkillRecommendationsFallback(FallbackSkill):
     def skill_search(self, utter):
         """Redo with fuzzy mathcing"""
         skill, confidence = match_one(utter, self.examples_dict)
-        if confidence >0.5:
+        if confidence > 0.5:
             return skill
         else:
             return None
-    
+
     def send_utterance(self, utter):
-        self.bus.emit(Message("recognizer_loop:utterance",  {'utterances': ["{}".format(utter)],  'lang': 'en-us'})) #TODO: localize
+        self.bus.emit(Message("recognizer_loop:utterance",
+                              {'utterances': ["{}".format(utter)], 'lang': 'en-us'}))  # TODO: localize
 
     def install_skill(self, skill):
-            skills_data = SkillManager.load_skills_data()
-            skill_data = skills_data.setdefault(skill.name, {})
-            skill.install()
+        skills_data = SkillManager.load_skills_data()
+        skill_data = skills_data.setdefault(skill.name, {})
+        skill.install()
 
-            # Marketplace Junk - just to update it
-            skill_data['beta'] = False
-            skill_data['name'] = skill.name
-            skill_data['origin'] = 'voice'
-            skill_data['installation'] = 'installed'
-            skill_data['installed'] = time.time()
-            skill_data['failure-message'] = ''
-            SkillManager.write_skills_data(skills_data)
-        
+        # Marketplace Junk - just to update it
+        skill_data['beta'] = False
+        skill_data['name'] = skill.name
+        skill_data['origin'] = 'voice'
+        skill_data['installation'] = 'installed'
+        skill_data['installed'] = time.time()
+        skill_data['failure-message'] = ''
+        SkillManager.write_skills_data(skills_data)
+
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
         utter = message.data.get("utterance")
@@ -127,18 +130,18 @@ class SkillRecommendationsFallback(FallbackSkill):
             # Confirmation
             confirmation = self.ask_yesno("skill.download.confirmation", data={"skill_name": skill_title})
             if confirmation == "no":
-                # self.speak_dialog("skill.download.refused")  # TODO: Should the skill say anything else? or:
+                self.speak_dialog("skill.download.refused")  # TODO: Should the skill say anything else? or:
                 return False  # TODO: Should this be True to keep it from going through all the other skills?
 
             self.speak_dialog("skill.downloading", data={"skill_name": skill_title})
             self.install_skill(skill)
             return True
-        
+
     def shutdown(self):
         """Remove skill from list of skills"""
         self.remove_fallback(self.handle_fallback)
         super(SkillRecommendationsFallback, self).shutdown()
 
+
 def create_skill():
     return SkillRecommendationsFallback()
-
