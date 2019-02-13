@@ -1,4 +1,4 @@
-# Copyright 2019 Linus S
+# Copyright 2019 Linus S (LinusS1)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import string
 import requests
 import json
 
-#The url to get the data
+# The url to get the data
 url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/18.08/skill-metadata.json"
 
 class SkillRecommendationsFallback(FallbackSkill):
@@ -48,7 +48,7 @@ class SkillRecommendationsFallback(FallbackSkill):
         except:
             #No event exists: OKAY!
             pass
-        # Now create a repeating event, starting now so that it updates now. Updates every 4 hours(14400 seconds=4 hours)
+        # Now create a repeating event, starting now so that it updates now. Updates every 4 hours(14400 seconds=4 hours
         self.schedule_repeating_event(handler=self.update_lists, when=datetime.datetime.now(), frequency=14400, data=None, name="SkillRecommendationsFallback.auto_refresh.lists")
 
     def _get_ready(self, utter):
@@ -76,7 +76,7 @@ class SkillRecommendationsFallback(FallbackSkill):
         for skill, data in data.items():
             examples = data.get("examples")
             for idx, example in enumerate(examples):
-                self.examples_dict[str(self._get_ready(example))] = str(skill)
+                self.examples_dict[str(self._get_ready(example))] = (str(skill), str(data.get("title")))
         self.log.info("Done updating example lists")
 
     def skill_search(self, utter):
@@ -107,7 +107,9 @@ class SkillRecommendationsFallback(FallbackSkill):
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
         utter = message.data.get("utterance")
-        suggested_skill = self.skill_search(self._get_ready(utter))
+        search = self.skill_search(self._get_ready(utter))
+        suggested_skill = search[0]
+        skill_title = search[1]
         self.log.info(str(suggested_skill))
         if suggested_skill is None:
             return False
@@ -122,7 +124,13 @@ class SkillRecommendationsFallback(FallbackSkill):
             # if it is already installed, return false: we can't help
             if skill.is_local:
                 return False
-            self.speak_dialog("skill.downloading")
+            # Confirmation
+            confirmation = self.ask_yesno("skill.download.confirmation", data={"skill_name": skill_title})
+            if confirmation == "no":
+                # self.speak_dialog("skill.download.refused")  # TODO: Should the skill say anything else? or:
+                return False  # TODO: Should this be True to keep it from going through all the other skills?
+
+            self.speak_dialog("skill.downloading", data={"skill_name": skill_title})
             self.install_skill(skill)
             return True
         
