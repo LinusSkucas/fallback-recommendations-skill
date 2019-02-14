@@ -131,8 +131,8 @@ class SkillRecommendationsFallback(FallbackSkill):
             # Confirmation
             confirmation = self.ask_yesno("skill.download.confirmation", data={"skill_name": skill_title})
             if confirmation != "yes":
-                self.speak_dialog("skill.download.refused")  # TODO: Should the skill say anything else? or:
-                return False  # TODO: Should this be True to keep it from going through all the other skills?
+                self.speak_dialog("skill.download.refused")
+                return True
 
             self.speak_dialog("skill.downloading", data={"skill_name": skill_title})
             self.install_skill(skill)
