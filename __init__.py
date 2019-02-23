@@ -24,9 +24,18 @@ import time
 import string
 import requests
 import json
+from mycroft.version import (CORE_VERSION_MAJOR, CORE_VERSION_MINOR)
 
-# The url to get the data
-url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/18.08/skill-metadata.json"
+# Find version - for skill versioning
+monthly_version_tuple = (CORE_VERSION_MAJOR, CORE_VERSION_MINOR)
+version_month_string = '.'.join(map(str, monthly_version_tuple))
+
+# Find the URL to get the data
+if version_month_string == "18.8":
+    url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/18.08/skill-metadata.json"
+elif version_month_string == "19.2":
+    url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/19.02/skill-metadata.json"
+# Add as things progress... TODO: Maybe format it so that there is not lots of elif statements?
 
 
 class SkillRecommendationsFallback(FallbackSkill):
