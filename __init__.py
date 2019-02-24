@@ -31,11 +31,8 @@ monthly_version_tuple = (CORE_VERSION_MAJOR, CORE_VERSION_MINOR)
 version_month_string = '.'.join(map(str, monthly_version_tuple))
 
 # Find the URL to get the data
-if version_month_string == "18.8":
-    url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/18.08/skill-metadata.json"
-elif version_month_string == "19.2":
-    url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/19.02/skill-metadata.json"
-# Add as things progress... TODO: Maybe format it so that there is not lots of elif statements?
+url = "https://raw.githubusercontent.com/MycroftAI/mycroft-skills-data/" \
+      "{}.0{}/skill-metadata.json".format(CORE_VERSION_MAJOR, CORE_VERSION_MINOR)
 
 
 class SkillRecommendationsFallback(FallbackSkill):
@@ -48,6 +45,9 @@ class SkillRecommendationsFallback(FallbackSkill):
 
     def initialize(self):
         """Register and download the file"""
+        # Log the url we are using for the data
+        self.log.info("URL used for downloading data:" + url)
+        # Register Fallback
         self.register_fallback(self.handle_fallback, 17)  # Q:why 17? A:Why not?
         # Add installation event
         self.add_event('mycroft.skills.loaded', self.handle_skill_loaded)
