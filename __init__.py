@@ -93,42 +93,31 @@ class SkillRecommendationsFallback(FallbackSkill):
     def skill_search(self, utter):
         """Redo with fuzzy mathcing"""
         skill, confidence = match_one(utter, self.examples_dict)
-        if confidence > 0.5:
+        if confidence > 0.6:
             return skill
         else:
             return None
 
     def send_utterance(self, utter):
         self.bus.emit(Message("recognizer_loop:utterance",
-                              {'utterances': ["{}".format(utter)], 'lang': 'en-us'}))  # TODO: localize
+                              {'utterances': ["{}".format(utter)], 'lang': self.lang}))
 
-    def install_skill(self, skill):
-        skills_data = SkillManager.load_skills_data()
-        skill_data = skills_data.setdefault(skill.name, {})
-        skill.install()
-
-        # Marketplace Junk - just to update it
-        skill_data['beta'] = False
-        skill_data['name'] = skill.name
-        skill_data['origin'] = 'voice'
-        skill_data['installation'] = 'installed'
-        skill_data['installed'] = time.time()
-        skill_data['failure-message'] = ''
-        SkillManager.write_skills_data(skills_data)
 
     def handle_fallback(self, message):
         """Find the skill and offer to download it"""
         utter = message.data.get("utterance")
         search = self.skill_search(self._get_ready(utter))
-        suggested_skill = search[0]
-        skill_title = search[1].lower().replace("skill", "")
+
         # Get rid of any "Skill" in the title
-        self.log.info(str(suggested_skill))
-        if suggested_skill is None:
+        if search is None:
             return False
         else:
-            # We can download the skill
+            suggested_skill = search[0]
+            self.log.info(str(suggested_skill))
+            # Take out skill in title
+            skill_title = search[1].lower().replace("skill", "")
 
+            # We can download the skill
             self.settings["install_skill"] = suggested_skill
             self.settings["utter"] = utter
             self.settings.store()
@@ -144,7 +133,7 @@ class SkillRecommendationsFallback(FallbackSkill):
                 return True
 
             self.speak_dialog("skill.downloading", data={"skill_name": skill_title})
-            self.install_skill(skill)
+            self.msm.install(skill, origin='')  # TODO: Should origin be changed to something else?
             return True
 
     def shutdown(self):
