@@ -120,7 +120,6 @@ class SkillRecommendationsFallback(FallbackSkill):
             # We can download the skill
             self.settings["install_skill"] = suggested_skill
             self.settings["utter"] = utter
-            self.settings.store()
             # install the skill
             skill = self.msm.find_skill(suggested_skill, False)
             # if it is already installed, return false: we can't help
