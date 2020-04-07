@@ -1,4 +1,4 @@
-# <img src='https://rawgit.com/FortAwesome/Font-Awesome/master/svgs/solid/brain.svg' card_color='#FD9E66' width='50' height='50' style='vertical-align:bottom'/> Recommendations Fallback Skill
+# <img src='https://rawgit.com/FortAwesome/Font-Awesome/master/svgs/solid/brain.svg' card_color='#FD9E66' width='50' height='50' style='vertical-align:bottom'/> Skill Recommendations
 When Mycroft doesn't know something, look up and download a skill that can handle that request.
 
 ## About 
